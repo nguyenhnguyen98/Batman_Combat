@@ -5,133 +5,121 @@ using UnityEngine.InputSystem;
 
 public class MovementInput : MonoBehaviour
 {
-    [Header("Public Variables")]
-    public float desiredRotationSpeed = 0.1f;
-    public float speed;
-    public float allowPlayerRotation = 0.1f;
-    public float rotationSpeed = 0.1f;
-    public bool blockRotationPlayer;
-    public float fallSpeed = 0.2f;
-    public float acceleration = 1f;
-    public Vector2 moveAxis;
+	private Animator _animator;
+	private Camera _camera;
+	private CharacterController _controller;
 
-    [Space]
-    [Header("States")]
-    [SerializeField]
-    private bool _isGrounded;
+	private Vector3 _desiredMoveDirection;
+	private Vector3 _moveVector;
 
-    [Space]
-    [Header("Animation Smoothing")]
-    [Range(0f, 1f)]
-    public float startAnimTime = 0.3f;
-    [Range(0f, 1f)]
-    public float stopAnimTime = 0.15f;
+	public Vector2 moveAxis;
+	private float _verticalVel;
 
-    private Vector3 _desiredMoveDirection;
-    private float _verticalVel;
-    private Vector3 _moveVector;
+	[Header("Settings")]
+	[SerializeField] float _movementSpeed;
+	[SerializeField] float _rotationSpeed = 0.1f;
+	[SerializeField] float _fallSpeed = .2f;
+	public float acceleration = 1;
 
-    private Animator _animator;
-    private Camera _camera;
-    private CharacterController _characterController;
+	[Header("Booleans")]
+	[SerializeField] bool _blockRotationPlayer;
+	private bool _isGrounded;
 
 
-    void Start()
-    {
-        _animator = GetComponent<Animator>();
-        _camera = Camera.main;
-        _characterController = GetComponent<CharacterController>();
+	void Start()
+	{
+		_animator = this.GetComponent<Animator>();
+		_camera = Camera.main;
+		_controller = this.GetComponent<CharacterController>();
+	}
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
-    }
+	void Update()
+	{
+		InputMagnitude();
 
-    // Update is called once per frame
-    void Update()
-    {
-        InputMagnitude();
+		_isGrounded = _controller.isGrounded;
 
-        _isGrounded = _characterController.isGrounded;
-        if (_isGrounded)
-        {
-            _verticalVel -= 0;
-        }
-        else
-        {
-            _verticalVel -= 1;
-        }
-        _moveVector = new Vector3(0, _verticalVel * fallSpeed * Time.deltaTime, 0);
-        _characterController.Move(_moveVector);
-    }
+		if (_isGrounded)
+			_verticalVel -= 0;
+		else
+			_verticalVel -= 1;
 
-    void PlayerMoveAndRotation()
-    {
-        var forward = _camera.transform.forward;
-        var right = _camera.transform.right;
+		_moveVector = new Vector3(0, _verticalVel * _fallSpeed * Time.deltaTime, 0);
+		_controller.Move(_moveVector);
+	}
 
-        forward.y = 0f;
-        right.y = 0f;
+	void PlayerMoveAndRotation()
+	{
+		var camera = Camera.main;
+		var forward = _camera.transform.forward;
+		var right = _camera.transform.right;
 
-        forward.Normalize();
-        right.Normalize();
+		forward.y = 0f;
+		right.y = 0f;
 
-        _desiredMoveDirection = forward * moveAxis.y + right * moveAxis.x;
+		forward.Normalize();
+		right.Normalize();
 
-        if (blockRotationPlayer == false)
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(_desiredMoveDirection), rotationSpeed * acceleration);
-            _characterController.Move(_desiredMoveDirection * Time.deltaTime * (speed * acceleration));
-        } else
-        {
-            _characterController.Move((transform.forward * moveAxis.y + transform.right * moveAxis.y) * Time.deltaTime * (speed * acceleration));
-        }
-    }
+		_desiredMoveDirection = forward * moveAxis.y + right * moveAxis.x;
 
-    public void LookAt(Vector3 pos)
-    {
-        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(pos), rotationSpeed);
-    }
+		if (_blockRotationPlayer == false)
+		{
+			//Camera
+			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(_desiredMoveDirection), _rotationSpeed * acceleration);
+			_controller.Move(_desiredMoveDirection * Time.deltaTime * (_movementSpeed * acceleration));
+		}
+		else
+		{
+			//Strafe
+			_controller.Move((transform.forward * moveAxis.y + transform.right * moveAxis.y) * Time.deltaTime * (_movementSpeed * acceleration));
+		}
+	}
 
-    public void RotateToCamera(Transform t)
-    {
-        var forward = _camera.transform.forward;
-        var right = _camera.transform.right;
+	public void LookAt(Vector3 pos)
+	{
+		transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(pos), _rotationSpeed);
+	}
 
-        _desiredMoveDirection = forward;
-        Quaternion lookAtRotation = Quaternion.LookRotation(_desiredMoveDirection);
-        Quaternion lookAtRotationOnly_Y = Quaternion.Euler(transform.rotation.eulerAngles.x, lookAtRotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+	public void RotateToCamera(Transform t)
+	{
+		var forward = _camera.transform.forward;
 
-        t.rotation = Quaternion.Slerp(transform.rotation, lookAtRotationOnly_Y, rotationSpeed);
-    }
+		_desiredMoveDirection = forward;
+		Quaternion lookAtRotation = Quaternion.LookRotation(_desiredMoveDirection);
+		Quaternion lookAtRotationOnly_Y = Quaternion.Euler(transform.rotation.eulerAngles.x, lookAtRotation.eulerAngles.y, transform.rotation.eulerAngles.z);
 
-    void InputMagnitude()
-    {
-        float inputMagnitude = new Vector2(moveAxis.x, moveAxis.y).sqrMagnitude;
+		t.rotation = Quaternion.Slerp(transform.rotation, lookAtRotationOnly_Y, _rotationSpeed);
+	}
 
-        if (inputMagnitude > allowPlayerRotation)
-        {
-            _animator.SetFloat("InputMagnitude", inputMagnitude * acceleration, startAnimTime, Time.deltaTime);
-            PlayerMoveAndRotation();
-        }
-        else
-        {
-            _animator.SetFloat("InputMagnitude", inputMagnitude * acceleration, stopAnimTime, Time.deltaTime);
-        }
-    }
+	void InputMagnitude()
+	{
+		//Calculate the Input Magnitude
+		float inputMagnitude = new Vector2(moveAxis.x, moveAxis.y).sqrMagnitude;
 
-    #region Input
+		//Physically move player
+		if (inputMagnitude > 0.1f)
+		{
+			_animator.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f, Time.deltaTime);
+			PlayerMoveAndRotation();
+		}
+		else
+		{
+			_animator.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f,Time.deltaTime);
+		}
+	}
 
-    public void OnMove(InputValue value)
-    {
-        Debug.Log(value);
-        moveAxis.x = value.Get<Vector2>().x;
-        moveAxis.y = value.Get<Vector2>().y;
-    }
+	#region Input
 
-    #endregion
+	public void OnMove(InputValue value)
+	{
+		moveAxis.x = value.Get<Vector2>().x;
+		moveAxis.y = value.Get<Vector2>().y;
+	}
 
-    private void OnDisable()
-    {
-        _animator.SetFloat("InputMagnitude", 0);
-    }
+	#endregion
+
+	private void OnDisable()
+	{
+		_animator.SetFloat("InputMagnitude", 0);
+	}
 }
