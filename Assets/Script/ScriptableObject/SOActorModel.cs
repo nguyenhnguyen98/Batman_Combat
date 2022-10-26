@@ -6,8 +6,9 @@ public class SOActorModel : ScriptableObject
     public string actorName;
     public string description;
     public int health;
-    public int movementSpeed;
+    public float movementSpeed;
     public int armor;
+    public float attackCooldown;
     public int baseDamage;
     public string[] attackTypes;
 }

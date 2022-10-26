@@ -1,10 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     static GameManager instance;
+
+    [SerializeField]
+    private Image _healbarSprite;
 
     public static GameManager Instance
     {
@@ -14,6 +18,11 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         CheckGameManagerIsInScene();
+    }
+
+    public void UpdateHealthBar(float health)
+    {
+        _healbarSprite.fillAmount = health / 100;
     }
 
     void CheckGameManagerIsInScene()

@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 
 public class MovementInput : MonoBehaviour
 {
+	private Actor _actor;
 	private Animator _animator;
 	private Camera _camera;
 	private CharacterController _controller;
@@ -28,9 +29,10 @@ public class MovementInput : MonoBehaviour
 
 	void Start()
 	{
-		_animator = this.GetComponent<Animator>();
+		_animator = GetComponent<Animator>();
 		_camera = Camera.main;
-		_controller = this.GetComponent<CharacterController>();
+		_controller = GetComponent<CharacterController>();
+		_actor = GetComponent<Actor>();
 	}
 
 	void Update()
@@ -66,12 +68,12 @@ public class MovementInput : MonoBehaviour
 		{
 			//Camera
 			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(_desiredMoveDirection), _rotationSpeed * acceleration);
-			_controller.Move(_desiredMoveDirection * Time.deltaTime * (_movementSpeed * acceleration));
+			_controller.Move(_desiredMoveDirection * Time.deltaTime * (_actor.MoveSpeed * acceleration));
 		}
 		else
 		{
 			//Strafe
-			_controller.Move((transform.forward * moveAxis.y + transform.right * moveAxis.y) * Time.deltaTime * (_movementSpeed * acceleration));
+			_controller.Move((transform.forward * moveAxis.y + transform.right * moveAxis.y) * Time.deltaTime * (_actor.MoveSpeed * acceleration));
 		}
 	}
 

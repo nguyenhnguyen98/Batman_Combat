@@ -12,13 +12,11 @@ public class CombatController : MonoBehaviour
     private MovementInput _movementInput;
     private Animator _animator;
     private CinemachineImpulseSource _impulseSource;
+    private GameManager _gameManager;
+    public Actor actor;
 
     [Header("Target")]
     [SerializeField] private EnemyController _lockedTarget;
-
-    [Space]
-    [Header("Combat Settings")]
-    [SerializeField] private float _attackCooldown;
 
     [Space]
     [Header("States")]
@@ -52,6 +50,8 @@ public class CombatController : MonoBehaviour
         _enemyDetection = GetComponent<EnemyDetection>();
         _movementInput = GetComponent<MovementInput>();
         _impulseSource = GetComponent<CinemachineImpulseSource>();
+        _gameManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
+        actor = GetComponent<Actor>();
     }
 
     void AttackCheck()
@@ -82,7 +82,7 @@ public class CombatController : MonoBehaviour
 
     public void Attack(EnemyController target, float distance)
     {
-        _attacks = new string[] {"Attack1", "Attack2", "Attack3", "Attack4", "Attack5", "GroundPunch" };
+        _attacks = actor.AttackTypes;
 
         if (target == null)
         {
@@ -94,7 +94,7 @@ public class CombatController : MonoBehaviour
         {
             _animationCount = (int)Mathf.Repeat((float)_animationCount + 1, (float)_attacks.Length);
             string attackString = isLastHit() ? _attacks[Random.Range(0, _attacks.Length)] : _attacks[_animationCount];
-            AttackType(attackString, _attackCooldown, target, .75f);
+            AttackType(attackString, actor.AttackCooldown, target, .85f);
         } else
         {
             _lockedTarget = null;
@@ -181,7 +181,7 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    public void DamageEvent()
+    public void DamageEvent(int damage)
     {
         _animator.SetTrigger("Hit");
 
@@ -189,6 +189,8 @@ public class CombatController : MonoBehaviour
             StopCoroutine(_damageCoroutine);
 
         _damageCoroutine = StartCoroutine(DamageCoroutine());
+        actor.Health = actor.Health - ((damage * (100 - actor.BaseDamage)) / 100);
+        _gameManager.UpdateHealthBar(actor.Health);
 
         IEnumerator DamageCoroutine()
         {
@@ -237,7 +239,7 @@ public class CombatController : MonoBehaviour
         if (_lockedTarget == null)
             return false;
 
-        return _enemyManager.AliveEnemyCount() == 1 && _lockedTarget.health <= 1;
+        return _enemyManager.AliveEnemyCount() == 1 && _lockedTarget.actor.Health <= actor.BaseDamage;
     }
 
     EnemyController ClosestEnemyCounter()

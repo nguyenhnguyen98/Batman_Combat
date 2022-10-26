@@ -2,6 +2,7 @@ using DG.Tweening;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
+using TMPro;
 
 public class EnemyController : MonoBehaviour
 {
@@ -10,9 +11,9 @@ public class EnemyController : MonoBehaviour
     private EnemyManager _enemyManager;
     private EnemyDetection _enemyDetection;
     private CharacterController _characterController;
+    public Actor actor;
 
     [Header("Stats")]
-    public int health = 3;
     private Vector3 _moveDirection;
     private float _moveSpeed = 1;
 
@@ -27,6 +28,10 @@ public class EnemyController : MonoBehaviour
 
     [Header("Polish")]
     [SerializeField] private ParticleSystem _counterParticle;
+
+    [Space]
+    [Header("Debug")]
+    [SerializeField] private TMP_Text _healthText;
 
     [Space]
     private Coroutine _movementCoroutine;
@@ -56,6 +61,9 @@ public class EnemyController : MonoBehaviour
         _playerCombat.OnTrajectory.AddListener((x) => OnPlayerTrajectory(x));
 
         _movementCoroutine = StartCoroutine(EnemyMovement());
+
+        actor = GetComponent<Actor>();
+        _healthText.text = actor.Health.ToString();
     }
 
     IEnumerator EnemyMovement()
@@ -97,10 +105,11 @@ public class EnemyController : MonoBehaviour
             _enemyDetection.SetCurrentTarget(null);
             _isLockedTarget = false;
             OnDamage.Invoke(this);
-            
-            health--;
 
-            if (health <= 0)
+            actor.Health = actor.Health - (( _playerCombat.actor.BaseDamage * (100 - _playerCombat.actor.Armor)) / 100) ;
+            _healthText.text = actor.Health.ToString() ;
+
+            if (actor.Health <= 0)
             {
                 Death();
                 return;
@@ -151,7 +160,7 @@ public class EnemyController : MonoBehaviour
             _animator.SetBool("Retreating", true);
             _moveDirection = -Vector3.forward;
             _isMoving = true;
-            yield return new WaitUntil(() => Vector3.Distance(transform.position, _playerCombat.transform.position) > 4);
+            yield return new WaitUntil(() => Vector3.Distance(transform.position, _playerCombat.transform.position) > 6f);
             _isRetreating = false;
             _animator.SetBool("Retreating", false);
             StopMoving();
@@ -196,9 +205,9 @@ public class EnemyController : MonoBehaviour
         _moveSpeed = 1;
 
         if (direction == Vector3.forward)
-            _moveSpeed = 3;
+            _moveSpeed = 2.5f;
         if (direction == -Vector3.forward)
-            _moveSpeed = 2;
+            _moveSpeed = 3;
 
         _animator.SetFloat("InputMagnitude", Mathf.Abs((_characterController.velocity.normalized.magnitude * direction.z) / (5 / _moveSpeed)), .2f, Time.deltaTime);
         _animator.SetBool("Strafe", (direction == Vector3.right || direction == Vector3.left));
@@ -231,7 +240,7 @@ public class EnemyController : MonoBehaviour
         if (!_isPreparingAttack)
             return;
 
-        if (Vector3.Distance(transform.position, _playerCombat.transform.position) < 1)
+        if (Vector3.Distance(transform.position, _playerCombat.transform.position) < 1.5f)
         {
             StopMoving();
             
@@ -251,7 +260,7 @@ public class EnemyController : MonoBehaviour
     public void HitEvent()
     {
         if (!_playerCombat.isCountering && !_playerCombat.isAttackingEnemy)
-            _playerCombat.DamageEvent();
+            _playerCombat.DamageEvent(actor.BaseDamage);
 
         PrepareAttack(false);
     }
@@ -306,7 +315,7 @@ public class EnemyController : MonoBehaviour
 
     public bool IsAttackable()
     {
-        return health > 0;
+        return actor.Health > 0;
     }
 
     public bool IsPreparingAttack()
